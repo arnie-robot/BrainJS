@@ -7,24 +7,40 @@ log('Initialising');
 
 // data values
 var incoming_host = '192.168.1.2';
-var incoming_port = 26000;
+var incoming_pos_port = 26000;
+var incoming_data_port = 26001;
 
 var spine_host = '192.168.1.1';
 var spine_port = 26000;
 
-var lastData = '';
-var prevData = '';
+var lastPos = '';
+var prevPos = '';
+
+var lastObserve = '';
+var prevObserve = '';
 
 // outgoing socket
 spine_sock = dgram.createSocket("udp4");
 
 // incoming socket
 sock = dgram.createSocket("udp4", function (msg, rinfo) {
-    lastData = msg.toString('ascii', 0, rinfo.size);
+    str = msg.toString('ascii', 0, rinfo.size);
+    lastPos = str.split(';')[0].split(',');
+});
+sock2 = dgram.createSocket("udp4", function (msg, rinfo) {
+    str = msg.toString('ascii', 0, rinfo.size);
+    items = str.split(';');
+    for (var i in items) {
+        items[i] = items[i].split(',');
+    }
+    lastObserve = items;
 });
 
-sock.bind(incoming_port, incoming_host);
-log('Connected to ' + incoming_host + ':' + incoming_port);
+sock.bind(incoming_pos_port, incoming_host);
+log('Connected to ' + incoming_host + ':' + incoming_pos_port + ' for position');
+
+sock2.bind(incoming_data_port, incoming_host);
+log('Connected to ' + incoming_host + ':' + incoming_data_port + ' for observation');
 
 // function to dispatch request
 function dispatch(str) {
@@ -32,20 +48,32 @@ function dispatch(str) {
     spine_sock.send(buffer, 0, buffer.length, spine_port, spine_host);
 }
 
-// returns the new data, or false
-function getNewData() {
-    if (prevData != lastData) {
-        prevData = lastData;
-        return lastData.split(',');
+// returns the new position, or false
+function getNewPos() {
+    if (prevPos != lastPos) {
+        prevPos = lastPos;
+        return lastPos;
     }
     return false;
 }
 
+// returns the new data observation, or false
+function getNewObservation() {
+    if (prevObserve != lastObserve) {
+        prevObserve = lastObserve;
+        return lastObserve;
+    }
+    return false;
+} 
+
 // recurring loop
 setInterval(function () {
-    latest = getNewData();
+    latest = getNewPos();
     if (latest) {
         log(latest);
-        dispatch(latest[0] + ',' + latest[1] + ',' + latest[2]);
+    }
+    obs = getNewObservation();
+    if (obs) {
+        log(obs);
     }
 }, 1);
