@@ -128,3 +128,6 @@ thought.getLastObservation = getLastObservation;
 
 // initialise the thought process
 thought.init();
+
+// tell it to think
+thought.think();

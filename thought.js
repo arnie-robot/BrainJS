@@ -16,13 +16,38 @@ var log = require('sys').log;
 // the instructions we are to process
 var instructions = {}
 
+// which thought tick we are currently on
+var tick = 0;
+
+// the loop which we will reference the interval with
+var loop = 0;
+
 /**
 * Methods
 */
 
 // initialisation
 this.init = function () {
-    
+
+}
+
+// starts thinking
+this.think = function (t) {
+    if (!t) {
+        t = 2500;
+    }
+    loop = setInterval(this.next, t);
+}
+
+// stops program execution
+this.stop = function () {
+    clearInterval(loop);
+}
+
+// executes the next thought tick
+this.next = function () {
+    log(tick);
+    tick++;
 }
 
 // dispatches a command to the spine system
