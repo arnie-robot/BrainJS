@@ -2,17 +2,22 @@
 var Buffer = require('buffer').Buffer;
 var dgram = require('dgram');
 var log = require('sys').log;
+var fs = require('fs');
 
+// startup and load configurations
 log('Initialising');
 
+log('Loading configuration');
+configstring = fs.readFileSync('config.json', 'ascii');
+var config = JSON.parse(configstring);
+log('Configuration loaded');
+
+log('Loading instructions');
+instructionstring = fs.readFileSync(config.instructions, 'ascii');
+var instructions = JSON.parse(instructionstring);
+log('Instructions loaded');
+
 // data values
-var incoming_host = '192.168.1.2';
-var incoming_pos_port = 26000;
-var incoming_data_port = 26001;
-
-var spine_host = '192.168.1.1';
-var spine_port = 26000;
-
 var lastPos = '';
 var prevPos = '';
 
@@ -22,7 +27,7 @@ var prevObserve = '';
 // outgoing socket
 spine_sock = dgram.createSocket("udp4");
 
-// incoming socket
+// incoming sockets
 sock = dgram.createSocket("udp4", function (msg, rinfo) {
     str = msg.toString('ascii', 0, rinfo.size);
     lastPos = str.split(';')[0].split(',');
@@ -36,16 +41,16 @@ sock2 = dgram.createSocket("udp4", function (msg, rinfo) {
     lastObserve = items;
 });
 
-sock.bind(incoming_pos_port, incoming_host);
-log('Connected to ' + incoming_host + ':' + incoming_pos_port + ' for position');
+sock.bind(config.connections.incoming.position.port, config.connections.incoming.position.host);
+log('Connected to ' + config.connections.incoming.position.host + ':' + config.connections.incoming.position.port + ' for position');
 
-sock2.bind(incoming_data_port, incoming_host);
-log('Connected to ' + incoming_host + ':' + incoming_data_port + ' for observation');
+sock2.bind(config.connections.incoming.observation.port, config.connections.incoming.observation.host);
+log('Connected to ' + config.connections.incoming.observation.host + ':' + config.connections.incoming.observation.host + ' for observation');
 
 // function to dispatch request
 function dispatch(str) {
     buffer = new Buffer(str);
-    spine_sock.send(buffer, 0, buffer.length, spine_port, spine_host);
+    spine_sock.send(buffer, 0, buffer.length, config.connections.outgoing.spine.port, config.connections.outgoing.spine.host);
 }
 
 // returns the new position, or false

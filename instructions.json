@@ -1,0 +1,105 @@
+{
+	"actions":
+	{
+		"start":
+		{
+			"trajectory":
+			[
+				{"x":0, "y":0, "z":0}
+			],
+			"decision":
+			{
+				"executeAfter":0,
+				"state":
+				{
+					"arm":{"x":-1, "y":-1, "z":-1},
+					"objects":
+					[
+						{"x":[50, 10], "y":[50,10], "z":[50,10], "certainty":[75, 25]}
+					]
+				},
+				"success":
+				{
+					"action":"lightSelf",
+					"delay":0
+				},
+				"fail":
+				{
+					"action":"start",
+					"delay":0
+				}
+			},
+			"maximumSequentialExecutions":-1,
+			"resetAction":"start"
+		},
+		"lightSelf":
+		{
+			"trajectory":
+			[
+				{"x":0, "y":50, "z":0},
+				{"x":50, "y":50, "z":0},
+				{"x":50, "y":50, "z":50},
+				{"x":0, "y":50, "z":0}
+			],
+			"decision":
+			{
+				"executeAfter":3,
+				"state":
+				{
+					"arm":{"x":[0,10], "y":[50,10], "z":[0,10]},
+					"objects":
+					[
+						{"x":[0,10], "y":[50,10], "z":[0,10], "certainty":[75, 25]}
+					]
+				},
+				"success":
+				{
+					"action":"lightOther",
+					"delay":0
+				},
+				"fail":
+				{
+					"action":"lightSelf",
+					"delay":0
+				}
+			},
+			"maximumSequentialExecutions":3,
+			"resetAction":"start"
+		},
+		"lightOther":
+		{
+			"trajectory":
+			[
+				{"x":0, "y":50, "z":0},
+				{"x":-50, "y":50, "z":0},
+				{"x":-50, "y":50, "z":50},
+				{"x":0, "y":50, "z":0}
+			],
+			"decision":
+			{
+				"executeAfter":3,
+				"state":
+				{
+					"arm":{"x":[0,10], "y":[50,10], "z":[0,10]},
+					"objects":
+					[
+						{"x":[-50,10], "y":[50,10], "z":[50,10], "certainty":[75, 25]}
+					]
+				},
+				"success":
+				{
+					"action":"start",
+					"delay":0
+				},
+				"fail":
+				{
+					"action":"lightOther",
+					"delay":0
+				}
+			},
+			"maximumSequentialExecutions":3,
+			"resetAction":"start"
+		}
+	},
+	"initialAction":"start"
+}
