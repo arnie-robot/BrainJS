@@ -1,28 +1,55 @@
-// includes
+/**
+* Brain.JS
+*
+* by Chris Alexander
+*
+* This file is the main brain system, that handles IO and setting everything up
+*/
+
+/**
+* Includes
+*/
+
+// built-in includes
 var Buffer = require('buffer').Buffer;
 var dgram = require('dgram');
 var log = require('sys').log;
 var fs = require('fs');
 
-// startup and load configurations
+// custom includes
+var thought = require('./thought');
+
+/**
+* Startup and initialisation
+*/
+
 log('Initialising');
 
+// load the configuration
 log('Loading configuration');
 configstring = fs.readFileSync('config.json', 'ascii');
 var config = JSON.parse(configstring);
 log('Configuration loaded');
 
+// load the instructions
 log('Loading instructions');
 instructionstring = fs.readFileSync(config.instructions, 'ascii');
-var instructions = JSON.parse(instructionstring);
+thought.instructions = JSON.parse(instructionstring);
 log('Instructions loaded');
 
-// data values
+/**
+* Initialise values
+*/
+
 var lastPos = '';
 var prevPos = '';
 
 var lastObserve = '';
 var prevObserve = '';
+
+/**
+* Initialise connections
+*/
 
 // outgoing socket
 spine_sock = dgram.createSocket("udp4");
@@ -47,11 +74,17 @@ log('Connected to ' + config.connections.incoming.position.host + ':' + config.c
 sock2.bind(config.connections.incoming.observation.port, config.connections.incoming.observation.host);
 log('Connected to ' + config.connections.incoming.observation.host + ':' + config.connections.incoming.observation.host + ' for observation');
 
+/**
+* Functions for getting and sending data
+*/
+
 // function to dispatch request
 function dispatch(str) {
     buffer = new Buffer(str);
     spine_sock.send(buffer, 0, buffer.length, config.connections.outgoing.spine.port, config.connections.outgoing.spine.host);
 }
+// attach it to the thought process
+thought.dispatch = dispatch;
 
 // returns the new position, or false
 function getNewPos() {
@@ -61,6 +94,15 @@ function getNewPos() {
     }
     return false;
 }
+// attach it to the thought process
+thought.getNewPos = getNewPos;
+
+// returns the last known position
+function getLastPos() {
+    return lastPos;
+}
+// attach it to the thought process
+thought.getLastPos = getLastPos;
 
 // returns the new data observation, or false
 function getNewObservation() {
@@ -69,16 +111,20 @@ function getNewObservation() {
         return lastObserve;
     }
     return false;
-} 
+}
+// attach it to the thought process
+thought.getNewObservation = getNewObservation;
 
-// recurring loop
-setInterval(function () {
-    latest = getNewPos();
-    if (latest) {
-        log(latest);
-    }
-    obs = getNewObservation();
-    if (obs) {
-        log(obs);
-    }
-}, 1);
+// return the last known data observation
+function getLastObservation() {
+    return lastObserve;
+}
+// attach it to the thought process
+thought.getLastObservation = getLastObservation;
+
+/**
+* Run the program
+*/
+
+// initialise the thought process
+thought.init();
