@@ -130,4 +130,4 @@ thought.getLastObservation = getLastObservation;
 thought.init();
 
 // tell it to think
-thought.think();
+thought.think(5000);
