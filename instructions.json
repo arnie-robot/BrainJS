@@ -29,8 +29,11 @@
 					"delay":0
 				}
 			}],
-			"maximumSequentialExecutions":-1,
-			"resetAction":"start"
+                        "reset": {
+                            "timeout":-1,
+                            "action":"start",
+                            "delay":0
+                        }
 		},
 		"lightSelf":
 		{
@@ -63,8 +66,11 @@
 					"delay":0
 				}
 			}],
-			"maximumSequentialExecutions":3,
-			"resetAction":"start"
+			"reset": {
+                            "timeout":3,
+                            "action":"start",
+                            "delay":0
+                        }
 		},
 		"lightOther":
 		{
@@ -97,8 +103,11 @@
 					"delay":0
 				}
 			}],
-			"maximumSequentialExecutions":3,
-			"resetAction":"start"
+			"reset": {
+                            "timeout":3,
+                            "action":"start",
+                            "delay":0
+                        }
 		}
 	},
 	"initialAction":"start"

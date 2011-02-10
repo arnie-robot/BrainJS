@@ -25,6 +25,9 @@ var loop = 0;
 // an array of trajectories that are currently being executed
 var trajectories = []
 
+// how many times the same action has been executed in succession
+var subsequentExecutions = 0;
+
 /**
 * Methods
 */
@@ -32,6 +35,7 @@ var trajectories = []
 // initialisation
 this.init = function () {
     this.trajectories = []
+    this.subsequentExecutions = 0;
     this.addTrajectory(this.instructions.initialAction);
 }
 
@@ -152,12 +156,30 @@ this.next = function (obj) {
 
                     // we passed the tests
                     log("Decision conditions passed");
-                    obj.addTrajectory(decisions[d].success.action, decisions[d].success.delay);
+                    action = decisions[d].success.action;
+                    delay = decisions[d].success.delay;
                 } catch (e) {
                     // we failed a test
                     log("Decision condition failed - " + e);
-                    obj.addTrajectory(decisions[d].fail.action, decisions[d].fail.delay);
+                    action = decisions[d].fail.action;
+                    delay = decisions[d].fail.delay;
                 }
+                if (action == obj.trajectories[trajectory][0]) {
+                    obj.subsequentExecutions++;
+                    log("Action repeated")
+                } else {
+                    obj.subsequentExecutions = 0;
+                }
+                if (obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout > 0 &&
+                    obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout < obj.subsequentExecutions) {
+                    // we have been told to execute only a certain number of times, and we have exceeded this
+                    log("Subsequent executions for action exceeded, executing fallback action");
+                    action = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.action;
+                    delay = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.delay;
+                }
+
+                // actually execute the trajectory
+                obj.addTrajectory(action, delay);
             }
         }
     }
