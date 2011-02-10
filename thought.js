@@ -79,82 +79,85 @@ this.next = function (obj) {
         }
 
         // see if we want to take the decision now
-        if (step == obj.instructions.actions[obj.trajectories[trajectory][0]].decision.executeAfter) {
-            // we are taking the decision
-            log('Executing decision');
+        decisions = obj.instructions.actions[obj.trajectories[trajectory][0]].decisions;
+        for (var d in decisions) {
+            if (step == decisions[d].executeAfter) {
+                // we are taking the decision
+                log('Executing decision');
 
-            try {
-                // verify arm state
-                armstate = obj.getLastPos();
-                expectedarm = obj.instructions.actions[obj.trajectories[trajectory][0]].decision.state.arm;
-                if (expectedarm.x != -1 && armstate[0] < (expectedarm.x[0] - expectedarm.x[1])) {
-                    throw "Arm X too low";
-                }
-                if (expectedarm.x != -1 && armstate[0] > (expectedarm.x[0] + expectedarm.x[1])) {
-                    throw "Arm X too high";
-                }
-                if (expectedarm.y != -1 && armstate[1] < (expectedarm.y[0] - expectedarm.y[1])) {
-                    throw "Arm Y too low";
-                }
-                if (expectedarm.y != -1 && armstate[1] > (expectedarm.y[0] + expectedarm.y[1])) {
-                    throw "Arm Y too high";
-                }
-                if (expectedarm.z != -1 && armstate[2] < (expectedarm.z[0] - expectedarm.z[1])) {
-                    throw "Arm Z too low";
-                }
-                if (expectedarm.z != -1 && armstate[2] > (expectedarm.z[0] + expectedarm.z[1])) {
-                    throw "Arm Z too high";
-                }
+                try {
+                    // verify arm state
+                    armstate = obj.getLastPos();
+                    expectedarm = decisions[d].state.arm;
+                    if (expectedarm.x != -1 && armstate[0] < (expectedarm.x[0] - expectedarm.x[1])) {
+                        throw "Arm X too low";
+                    }
+                    if (expectedarm.x != -1 && armstate[0] > (expectedarm.x[0] + expectedarm.x[1])) {
+                        throw "Arm X too high";
+                    }
+                    if (expectedarm.y != -1 && armstate[1] < (expectedarm.y[0] - expectedarm.y[1])) {
+                        throw "Arm Y too low";
+                    }
+                    if (expectedarm.y != -1 && armstate[1] > (expectedarm.y[0] + expectedarm.y[1])) {
+                        throw "Arm Y too high";
+                    }
+                    if (expectedarm.z != -1 && armstate[2] < (expectedarm.z[0] - expectedarm.z[1])) {
+                        throw "Arm Z too low";
+                    }
+                    if (expectedarm.z != -1 && armstate[2] > (expectedarm.z[0] + expectedarm.z[1])) {
+                        throw "Arm Z too high";
+                    }
 
-                // verify object state
-                objects = obj.getLastObservation();
-                expectedobjects = obj.instructions.actions[obj.trajectories[trajectory][0]].decision.state.objects;
-                for (var object in expectedobjects) {
-                    var o = expectedobjects[object];
-                    for (var actual in objects) {
-                        var a = objects[actual];
-                        var matched = true;
-                        console.log(a);
-                        console.log(o);
-                        if (o.x != -1 && a[0] < (o.x[0] - o.x[1])) {
-                            matched = false;
-                        }
-                        if (o.x != -1 && a[0] > (o.x[0] + o.x[1])) {
-                            matched = false;
-                        }
-                        if (o.y != -1 && a[1] < (o.y[0] - o.y[1])) {
-                            matched = false;
-                        }
-                        if (o.y != -1 && a[1] > (o.y[0] + o.y[1])) {
-                            matched = false;
-                        }
-                        if (o.z != -1 && a[2] < (o.z[0] - o.z[1])) {
-                            matched = false;
-                        }
-                        if (o.z != -1 && a[2] > (o.z[0] + o.z[1])) {
-                            matched = false;
-                        }
+                    // verify object state
+                    objects = obj.getLastObservation();
+                    expectedobjects = decisions[d].state.objects;
+                    for (var object in expectedobjects) {
+                        var o = expectedobjects[object];
+                        for (var actual in objects) {
+                            var a = objects[actual];
+                            var matched = true;
+                            console.log(a);
+                            console.log(o);
+                            if (o.x != -1 && a[0] < (o.x[0] - o.x[1])) {
+                                matched = false;
+                            }
+                            if (o.x != -1 && a[0] > (o.x[0] + o.x[1])) {
+                                matched = false;
+                            }
+                            if (o.y != -1 && a[1] < (o.y[0] - o.y[1])) {
+                                matched = false;
+                            }
+                            if (o.y != -1 && a[1] > (o.y[0] + o.y[1])) {
+                                matched = false;
+                            }
+                            if (o.z != -1 && a[2] < (o.z[0] - o.z[1])) {
+                                matched = false;
+                            }
+                            if (o.z != -1 && a[2] > (o.z[0] + o.z[1])) {
+                                matched = false;
+                            }
 
-                        // we matched so no need to continue
-                        if (matched) {
-                            // splice out this result so it can't match another one
-                            objects.splice(actual, 1);
-                            break;
+                            // we matched so no need to continue
+                            if (matched) {
+                                // splice out this result so it can't match another one
+                                objects.splice(actual, 1);
+                                break;
+                            }
+                        }
+                        // nothing matched so throw out
+                        if (!matched) {
+                            throw "Failed to find a match for object " + object;
                         }
                     }
-                    // nothing matched so throw out
-                    if (!matched) {
-                        throw "Failed to find a match for object " + object;
-                    }
-                }
 
-                // we passed the tests
-                log("Decision conditions passed");
-                obj.addTrajectory(obj.instructions.actions[obj.trajectories[trajectory][0]].decision.success.action, obj.instructions.actions[obj.trajectories[trajectory][0]].decision.success.delay);
-            } catch (e) {
-                // we failed a test
-                log("Decision condition failed - " + e);
-                obj.addTrajectory(obj.instructions.actions[obj.trajectories[trajectory][0]].decision.fail.action, obj.instructions.actions[obj.trajectories[trajectory][0]].decision.fail.delay);
+                    // we passed the tests
+                    log("Decision conditions passed");
+                    obj.addTrajectory(decisions[d].success.action, decisions[d].success.delay);
+                } catch (e) {
+                    // we failed a test
+                    log("Decision condition failed - " + e);
+                    obj.addTrajectory(decisions[d].fail.action, decisions[d].fail.delay);
+                }
             }
         }
     }

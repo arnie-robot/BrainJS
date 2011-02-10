@@ -7,8 +7,8 @@
 			[
 				{"x":0, "y":0, "z":0}
 			],
-			"decision":
-			{
+			"decisions":
+			[{
 				"executeAfter":0,
 				"state":
 				{
@@ -28,7 +28,7 @@
 					"action":"start",
 					"delay":0
 				}
-			},
+			}],
 			"maximumSequentialExecutions":-1,
 			"resetAction":"start"
 		},
@@ -41,8 +41,8 @@
 				{"x":50, "y":50, "z":50},
 				{"x":0, "y":50, "z":0}
 			],
-			"decision":
-			{
+			"decisions":
+			[{
 				"executeAfter":3,
 				"state":
 				{
@@ -62,7 +62,7 @@
 					"action":"lightSelf",
 					"delay":0
 				}
-			},
+			}],
 			"maximumSequentialExecutions":3,
 			"resetAction":"start"
 		},
@@ -75,8 +75,8 @@
 				{"x":-50, "y":50, "z":50},
 				{"x":0, "y":50, "z":0}
 			],
-			"decision":
-			{
+			"decisions":
+			[{
 				"executeAfter":3,
 				"state":
 				{
@@ -96,7 +96,7 @@
 					"action":"lightOther",
 					"delay":0
 				}
-			},
+			}],
 			"maximumSequentialExecutions":3,
 			"resetAction":"start"
 		}
