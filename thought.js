@@ -15,7 +15,7 @@ var log = require('sys').log;
 
 // the instructions we are to process
 var instructions = {}
-
+ 
 // which thought tick we are currently on
 var tick = 0;
 
@@ -28,6 +28,12 @@ var trajectories = []
 // how many times the same action has been executed in succession
 var subsequentExecutions = 0;
 
+// the last data that was dispatched
+var lastDispatched = [0,0,0];
+
+// a set of variables that can be saved and written to for command processing
+var variables = {};
+
 /**
 * Methods
 */
@@ -35,7 +41,9 @@ var subsequentExecutions = 0;
 // initialisation
 this.init = function () {
     this.trajectories = []
+    this.variables = {}
     this.subsequentExecutions = 0;
+    this.lastDispatched = [0,0,0];
     this.addTrajectory(this.instructions.initialAction);
 }
 
@@ -55,7 +63,7 @@ this.stop = function () {
 // executes the next thought tick
 this.next = function (obj) {
     // compute which trajectories are telling us to do what
-    result = [-1, -1, -1];
+    result = ["0", "0", "0"];
     coordinates = ['x', 'y', 'z'];
 
     // loop over each trajectory we have to use
@@ -69,14 +77,18 @@ this.next = function (obj) {
             continue;
         } else if (step >= 0) {
             // loop over x, y, z coordinates
-            for (var coord in coordinates) {
+            for (var c in coordinates) {
                 // we have not finished the trajectory and we have a valid start point
-                var coord_val = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory[step][coordinates[coord]];
+                var coord_val = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory[step][coordinates[c]];
+                if (typeof(coord_val) == "string") {
+                    // variable so need to look up the value
+                    coord_val = obj.variables[coord_val][c]
+                }
                 if (coord_val >= 0) {
-                    if (result[coord] < 0) {
-                        result[coord] = coord_val;
+                    if (result[c] == "0") {
+                        result[c] = coord_val;
                     } else {
-                        result[coord] += coord_val;
+                        result[c] += coord_val;
                     }
                 }
             }
@@ -93,52 +105,62 @@ this.next = function (obj) {
                     // verify arm state
                     armstate = obj.getLastPos();
                     expectedarm = decisions[d].state.arm;
-                    if (expectedarm.x != -1 && armstate[0] < (expectedarm.x[0] - expectedarm.x[1])) {
-                        throw "Arm X too low";
+
+                    // check if any of the arm positions are variable-based
+                    for (c in coordinates) {
+                        if (expectedarm[coordinates[c]] != -1 && typeof(expectedarm[coordinates[c]][0]) == "string") {
+                            if (expectedarm[coordinates[c]][0] in obj.variables) {
+                                expectedarm[coordinates[c]][0] = obj.variables[expectedarm[coordinates[c]][0]][c];
+                            } else {
+                                throw "The arm's " + coordinates[c] + " variable is not present";
+                            }
+                        }
                     }
-                    if (expectedarm.x != -1 && armstate[0] > (expectedarm.x[0] + expectedarm.x[1])) {
-                        throw "Arm X too high";
+
+                    // check the arm position
+                    for (c in coordinates) {
+                        if (expectedarm[coordinates[c]] != -1 && armstate[c] < (expectedarm[coordinates[c]][0] - expectedarm[coordinates[c]][1])) {
+                            throw "Arm " + coordinates[c] + " too low";
+                        }
+                        if (expectedarm[coordinates[c]] != -1 && armstate[c] > (expectedarm[coordinates[c]][0] + expectedarm[coordinates[c]][1])) {
+                            throw "Arm " + coordinates[c] + " too high";
+                        }
                     }
-                    if (expectedarm.y != -1 && armstate[1] < (expectedarm.y[0] - expectedarm.y[1])) {
-                        throw "Arm Y too low";
-                    }
-                    if (expectedarm.y != -1 && armstate[1] > (expectedarm.y[0] + expectedarm.y[1])) {
-                        throw "Arm Y too high";
-                    }
-                    if (expectedarm.z != -1 && armstate[2] < (expectedarm.z[0] - expectedarm.z[1])) {
-                        throw "Arm Z too low";
-                    }
-                    if (expectedarm.z != -1 && armstate[2] > (expectedarm.z[0] + expectedarm.z[1])) {
-                        throw "Arm Z too high";
-                    }
+
+                    // we matched the arm state, so save what it was off to the variables
+                    obj.variables[obj.trajectories[trajectory][0] + "," + d + ",arm"] = armstate;
 
                     // verify object state
                     objects = obj.getLastObservation();
                     expectedobjects = decisions[d].state.objects;
                     for (var object in expectedobjects) {
                         var o = expectedobjects[object];
+
+                        // check if any of the object positions are variable-based
+                        for (c in coordinates) {
+                            if (o[coordinates[c]] != -1 && typeof(o[coordinates[c]][0]) == "string") {
+                                if (o[coordinates[c]][0] in obj.variables) {
+                                    o[coordinates[c]][0] = obj.variables[o[coordinates[c]][0]][c];
+                                    log("Assigned object " + object + "'s " + coordinates[c] + " variable to " + o[coordinates[c]][0] + " based on variable input");
+                                } else {
+                                    throw "Object " + object + "'s " + coordinates[c] + " variable is not present";
+                                }
+                            }
+                        }
+                        
+                        var matched = false;
+                        var a = [-1,-1,-1];
                         for (var actual in objects) {
-                            var a = objects[actual];
-                            var matched = true;
-                            console.log(a);
-                            console.log(o);
-                            if (o.x != -1 && a[0] < (o.x[0] - o.x[1])) {
-                                matched = false;
-                            }
-                            if (o.x != -1 && a[0] > (o.x[0] + o.x[1])) {
-                                matched = false;
-                            }
-                            if (o.y != -1 && a[1] < (o.y[0] - o.y[1])) {
-                                matched = false;
-                            }
-                            if (o.y != -1 && a[1] > (o.y[0] + o.y[1])) {
-                                matched = false;
-                            }
-                            if (o.z != -1 && a[2] < (o.z[0] - o.z[1])) {
-                                matched = false;
-                            }
-                            if (o.z != -1 && a[2] > (o.z[0] + o.z[1])) {
-                                matched = false;
+                            a = objects[actual];
+                            matched = true;
+
+                            for (c in coordinates) {
+                                if (o[coordinates[c]] != -1 && a[c] < (o[coordinates[c]][0] - o[coordinates[c]][1])) {
+                                    matched = false;
+                                }
+                                if (o[coordinates[c]] != -1 && a[c] > (o[coordinates[c]][0] + o[coordinates[c]][1])) {
+                                    matched = false;
+                                }
                             }
 
                             // we matched so no need to continue
@@ -151,6 +173,9 @@ this.next = function (obj) {
                         // nothing matched so throw out
                         if (!matched) {
                             throw "Failed to find a match for object " + object;
+                        } else {
+                            // matched, so save this matched state to the variables
+                            obj.variables[obj.trajectories[trajectory][0] + "," + d + "," + actual] = a;
                         }
                     }
 
@@ -185,6 +210,16 @@ this.next = function (obj) {
     }
     console.log(result);
     console.log(obj.trajectories);
+    console.log(obj.variables);
+
+    for (var i in result) {
+        if (result == "0") {
+            result[i] = obj.lastDispatched[i];
+        }
+    }
+    obj.lastDispatched = result;
+    obj.dispatch(result.join(','));
+
     // increment the tick for next run
     log('Tick ' + tick + ' complete');
     tick++;

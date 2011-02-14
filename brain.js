@@ -72,7 +72,7 @@ sock.bind(config.connections.incoming.position.port, config.connections.incoming
 log('Connected to ' + config.connections.incoming.position.host + ':' + config.connections.incoming.position.port + ' for position');
 
 sock2.bind(config.connections.incoming.observation.port, config.connections.incoming.observation.host);
-log('Connected to ' + config.connections.incoming.observation.host + ':' + config.connections.incoming.observation.host + ' for observation');
+log('Connected to ' + config.connections.incoming.observation.host + ':' + config.connections.incoming.observation.port + ' for observation');
 
 /**
 * Functions for getting and sending data
