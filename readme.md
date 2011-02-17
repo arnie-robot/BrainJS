@@ -16,3 +16,7 @@ Simply run `node brain.js`
 
 Configuration is achieved through config.json. To program a set of actions (an action is a trajectory plus one or more decisions), use
 the instructions.json file.
+
+## License
+
+Copyright 2011 Chris Alexander. Licensed under the MIT License. See the LICENSE file for more information.
