@@ -26,7 +26,10 @@ var loop = 0;
 var trajectories = []
 
 // how many times the same action has been executed in succession
-var subsequentExecutions = 0;
+var subsequentActionExecutions = 0;
+
+// how many times the same trajectory component has been executed in succession
+var subsequentTrajectoryExecutions = 0;
 
 // the last data that was dispatched
 var lastDispatched = [0,0,0];
@@ -42,7 +45,8 @@ var variables = {};
 this.init = function () {
     this.trajectories = []
     this.variables = {}
-    this.subsequentExecutions = 0;
+    this.subsequentActionExecutions = 0;
+    this.subsequentTrajectoryExecutions = 0;
     this.lastDispatched = [0,0,0];
     this.addTrajectory(this.instructions.initialAction);
 }
@@ -66,38 +70,58 @@ this.next = function (obj) {
     result = ["0", "0", "0"];
     coordinates = ['x', 'y', 'z'];
 
+    log(obj.trajectories);
+
     // loop over each trajectory we have to use
     for (var trajectory = 0; trajectory < obj.trajectories.length; trajectory++) {
+
         // compute what step of the trajectory we are at
         var step = tick - obj.trajectories[trajectory][1];
-        if (step >= obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory.length) {
-            // we have finished the trajectory - so remove it
-            obj.trajectories.splice(trajectory, 1);
-            trajectory -= 1;
-            continue;
-        } else if (step >= 0) {
-            // loop over x, y, z coordinates
+
+        // do we need trajectory step verification
+        verification = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectoryVerification;
+        if (verification && step > 0) { // we require verification and aren't executing the first step
+            // do verification of previous step
+            armstate = obj.getLastPos();
+            expected = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory[step-1]
+            verified = true;
+            var threshold = 25;
             for (var c in coordinates) {
-                // we have not finished the trajectory and we have a valid start point
-                var coord_val = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory[step][coordinates[c]];
-                if (typeof(coord_val) == "string") {
-                    // variable so need to look up the value
-                    coord_val = obj.variables[coord_val][c]
+                if (armstate[c] < (expected[coordinates[c]] - threshold)) {
+                    verified = false;
+                    break;
                 }
-                if (coord_val >= 0) {
-                    if (result[c] == "0") {
-                        result[c] = coord_val;
-                    } else {
-                        result[c] += coord_val;
-                    }
+                if (armstate[c] > (expected[coordinates[c]] + threshold)) {
+                    verified = false;
+                    break;
                 }
+            }
+            if (!verified) {
+                // verification failed
+
+                // see if we're over the maximum permitted trajectory attempts
+                if (obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout > 0 &&
+                    obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout < obj.subsequentTrajectoryExecutions) {
+                    // we have been told to execute only a certain number of times, and we have exceeded this
+                    log("Subsequent executions for trajectory component exceeded, executing fallback action");
+                    action = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.action;
+                    delay = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.delay;
+                    obj.addTrajectory(action, delay);
+                    continue;
+                }
+
+                obj.subsequentTrajectoryExecutions++;
+                obj.trajectories[trajectory][1]++; // nudge this trajectory back a step (move start time forward 1)
+                continue; // attempt next time around
+            } else {
+                obj.subsequentTrajectoryExecutions = 0; // we didn't repeat or anything so set this to zero
             }
         }
 
-        // see if we want to take the decision now
+        // see if we want to take the decision now for the previous step
         decisions = obj.instructions.actions[obj.trajectories[trajectory][0]].decisions;
         for (var d in decisions) {
-            if (step == decisions[d].executeAfter) {
+            if (step-1 == decisions[d].executeAfter) {
                 // we are taking the decision
                 log('Executing decision');
 
@@ -147,7 +171,7 @@ this.next = function (obj) {
                                 }
                             }
                         }
-                        
+
                         var matched = false;
                         var a = [-1,-1,-1];
                         for (var actual in objects) {
@@ -190,13 +214,13 @@ this.next = function (obj) {
                     delay = decisions[d].fail.delay;
                 }
                 if (action == obj.trajectories[trajectory][0]) {
-                    obj.subsequentExecutions++;
+                    obj.subsequentActionExecutions++;
                     log("Action repeated")
                 } else {
-                    obj.subsequentExecutions = 0;
+                    obj.subsequentActionExecutions = 0;
                 }
                 if (obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout > 0 &&
-                    obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout < obj.subsequentExecutions) {
+                    obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout < obj.subsequentActionExecutions) {
                     // we have been told to execute only a certain number of times, and we have exceeded this
                     log("Subsequent executions for action exceeded, executing fallback action");
                     action = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.action;
@@ -207,6 +231,32 @@ this.next = function (obj) {
                 obj.addTrajectory(action, delay);
             }
         }
+
+        // see where we are in the trajectory
+        if (step >= obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory.length) {
+            // we have finished the trajectory - so remove it
+            obj.trajectories.splice(trajectory, 1);
+            trajectory -= 1;
+            continue;
+        } else if (step >= 0) {
+            // loop over x, y, z coordinates
+            for (c in coordinates) {
+                // we have not finished the trajectory and we have a valid start point
+                var coord_val = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory[step][coordinates[c]];
+                if (typeof(coord_val) == "string") {
+                    // variable so need to look up the value
+                    coord_val = obj.variables[coord_val][c]
+                }
+                if (coord_val >= 0) {
+                    if (result[c] == "0") {
+                        result[c] = coord_val;
+                    } else {
+                        result[c] += coord_val;
+                    }
+                }
+            }
+        }
+
     }
     console.log(result);
     console.log(obj.trajectories);
