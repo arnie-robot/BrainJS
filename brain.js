@@ -57,14 +57,22 @@ spine_sock = dgram.createSocket("udp4");
 // incoming sockets
 sock = dgram.createSocket("udp4", function (msg, rinfo) {
     str = msg.toString('ascii', 0, rinfo.size);
-    lastPos = str.split(';')[0].split(',');
+    split = str.split(';')[0].split(',');
+    for (i in split) {
+        split[i] = parseFloat(split[i])
+    }
+    lastPos = split;
 });
 sock2 = dgram.createSocket("udp4", function (msg, rinfo) {
     str = msg.toString('ascii', 0, rinfo.size);
     items = str.split(';');
     for (var i in items) {
         items[i] = items[i].split(',');
+        for (var j in items[i]) {
+            items[i][j] = parseFloat(items[i][j]);
+        }
     }
+    log(items);
     lastObserve = items;
 });
 
@@ -81,6 +89,7 @@ log('Connected to ' + config.connections.incoming.observation.host + ':' + confi
 // function to dispatch request
 function dispatch(str) {
     buffer = new Buffer(str);
+    log('Dispatching ' + str);
     spine_sock.send(buffer, 0, buffer.length, config.connections.outgoing.spine.port, config.connections.outgoing.spine.host);
 }
 // attach it to the thought process
@@ -130,4 +139,4 @@ thought.getLastObservation = getLastObservation;
 thought.init();
 
 // tell it to think
-thought.think(5000);
+thought.think(10000);

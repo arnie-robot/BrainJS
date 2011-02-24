@@ -80,30 +80,44 @@ this.next = function (obj) {
 
         // do we need trajectory step verification
         verification = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectoryVerification;
+        log("Assessing verification requirement");
         if (verification && step > 0) { // we require verification and aren't executing the first step
             // do verification of previous step
+            log("We are performing verification");
             armstate = obj.getLastPos();
             expected = obj.instructions.actions[obj.trajectories[trajectory][0]].trajectory[step-1]
             verified = true;
             var threshold = 25;
             for (var c in coordinates) {
-                if (armstate[c] < (expected[coordinates[c]] - threshold)) {
+                var ec;
+                if (typeof(expected[coordinates[c]]) == "string") {
+                    ec = obj.variables[expected[coordinates[c]]][c]
+                } else {
+                    ec = expected[coordinates[c]];
+                }
+                if (armstate[c] < (ec - threshold)) {
                     verified = false;
                     break;
                 }
-                if (armstate[c] > (expected[coordinates[c]] + threshold)) {
+                if (armstate[c] > (ec + threshold)) {
                     verified = false;
                     break;
                 }
             }
             if (!verified) {
                 // verification failed
+                log("Verification FAILED");
 
                 // see if we're over the maximum permitted trajectory attempts
                 if (obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout > 0 &&
-                    obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout < obj.subsequentTrajectoryExecutions) {
+                    obj.instructions.actions[obj.trajectories[trajectory][0]].reset.timeout <= obj.subsequentTrajectoryExecutions) {
                     // we have been told to execute only a certain number of times, and we have exceeded this
                     log("Subsequent executions for trajectory component exceeded, executing fallback action");
+
+                    // remove the trajectory we no longer want to do from the list of executing trajectories
+                    obj.trajectories.splice(trajectory, 1);
+                    trajectory -= 1;
+                    // set up the reset action
                     action = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.action;
                     delay = obj.instructions.actions[obj.trajectories[trajectory][0]].reset.delay;
                     obj.addTrajectory(action, delay);
@@ -111,9 +125,10 @@ this.next = function (obj) {
                 }
 
                 obj.subsequentTrajectoryExecutions++;
-                obj.trajectories[trajectory][1]++; // nudge this trajectory back a step (move start time forward 1)
+                obj.trajectories[trajectory][1] += 2; // nudge this trajectory back two steps (move start time forward 2)
                 continue; // attempt next time around
             } else {
+                log("Verification SUCCEEDED");
                 obj.subsequentTrajectoryExecutions = 0; // we didn't repeat or anything so set this to zero
             }
         }
@@ -247,12 +262,10 @@ this.next = function (obj) {
                     // variable so need to look up the value
                     coord_val = obj.variables[coord_val][c]
                 }
-                if (coord_val >= 0) {
-                    if (result[c] == "0") {
-                        result[c] = coord_val;
-                    } else {
-                        result[c] += coord_val;
-                    }
+                if (result[c] == "0") {
+                    result[c] = coord_val;
+                } else {
+                    result[c] += coord_val;
                 }
             }
         }
