@@ -97,9 +97,11 @@ this.next = function (obj) {
                 }
                 if (armstate[c] < (ec - threshold)) {
                     verified = false;
+		    log("Armstate " + c + " was outside threshold " + ec + " - " + threshold);
                     break;
                 }
                 if (armstate[c] > (ec + threshold)) {
+		    log("Armstate " + c + " was outside threshold " + ec + " + " + threshold);
                     verified = false;
                     break;
                 }
@@ -159,10 +161,10 @@ this.next = function (obj) {
                     // check the arm position
                     for (c in coordinates) {
                         if (expectedarm[coordinates[c]] != -1 && armstate[c] < (expectedarm[coordinates[c]][0] - expectedarm[coordinates[c]][1])) {
-                            throw "Arm " + coordinates[c] + " too low";
+                            throw "Arm " + coordinates[c] + " too low, was " + armstate[c] + " less than " + expectedarm[coordinates[c]][0] + " - " + expectedarm[coordinates[c]][1];
                         }
                         if (expectedarm[coordinates[c]] != -1 && armstate[c] > (expectedarm[coordinates[c]][0] + expectedarm[coordinates[c]][1])) {
-                            throw "Arm " + coordinates[c] + " too high";
+                            throw "Arm " + coordinates[c] + " too high, was " + armstate[c] + " greater than " + expectedarm[coordinates[c]][0] + " + " + expectedarm[coordinates[c]][1];
                         }
                     }
 

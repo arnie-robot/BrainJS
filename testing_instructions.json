@@ -1,0 +1,70 @@
+{
+	"actions":
+	{
+		"go":
+		{
+			"trajectory":
+			[
+				{"x":0, "y":50, "z":0}
+			],
+			"trajectoryVerification":true,
+			"decisions":
+			[{
+				"executeAfter":0,
+				"state":
+				{
+					"arm":{"x":[0,15], "y":[50,15], "z":[0,15]},
+					"objects":[]
+				},
+				"success":
+				{
+					"action":"return",
+					"delay":0
+				},
+				"fail":
+				{
+					"action":"go",
+					"delay":0
+				}
+			}],
+			"reset": {
+				"timeout":-1,
+				"action":"go",
+				"delay":0
+			}
+		},
+		"return":
+		{
+			"trajectory":
+			[
+				{"x":0, "y":0, "z":0}
+			],
+			"trajectoryVerification":true,
+			"decisions":
+			[{
+				"executeAfter":0,
+				"state":
+				{
+					"arm":{"x":[0,15], "y":[0,15], "z":[0,15]},
+					"objects":[]
+				},
+				"success":
+				{
+					"action":"go",
+					"delay":0
+				},
+				"fail":
+				{
+					"action":"return",
+					"delay":0
+				}
+			}],
+			"reset": {
+				"timeout":3,
+				"action":"go",
+				"delay":0
+			}
+		}
+	},
+	"initialAction":"go"
+}

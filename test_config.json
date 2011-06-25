@@ -1,0 +1,27 @@
+{
+	"connections":
+	{
+		"incoming":
+		{
+			"position":
+			{
+				"host":"192.168.1.2",
+				"port":26000
+			},
+			"observation":
+			{
+				"host":"192.168.1.2",
+				"port":26001
+			}
+		},
+		"outgoing":
+		{
+			"spine":
+			{
+				"host":"192.168.1.1",
+				"port":26000
+			}
+		}
+	},
+	"instructions":"testing_instructions.json"
+}

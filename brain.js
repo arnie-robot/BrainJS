@@ -16,6 +16,9 @@ var dgram = require('dgram');
 var log = require('sys').log;
 var fs = require('fs');
 
+// library includes
+var opts = require('./opts');
+
 // custom includes
 var thought = require('./thought');
 
@@ -25,14 +28,26 @@ var thought = require('./thought');
 
 log('Initialising');
 
+var config_file = 'config.json';
+
+// Parse the options
+var options = [
+    { short       : 'c'
+    , long        : 'config'
+    , description : 'The configuration file'
+    , value       : true
+    , callback    : function (value) { config_file = value; } // override host value
+    }];
+opts.parse(options, true);
+
 // load the configuration
-log('Loading configuration');
-configstring = fs.readFileSync('config.json', 'ascii');
+log('Loading configuration in "' + config_file + '"');
+configstring = fs.readFileSync(config_file, 'ascii');
 var config = JSON.parse(configstring);
 log('Configuration loaded');
 
 // load the instructions
-log('Loading instructions');
+log('Loading instructions in "' + config.instructions + '"');
 instructionstring = fs.readFileSync(config.instructions, 'ascii');
 thought.instructions = JSON.parse(instructionstring);
 log('Instructions loaded');
@@ -65,7 +80,9 @@ sock = dgram.createSocket("udp4", function (msg, rinfo) {
 });
 sock2 = dgram.createSocket("udp4", function (msg, rinfo) {
     str = msg.toString('ascii', 0, rinfo.size);
+    log(str);
     items = str.split(';');
+    log(items);
     for (var i in items) {
         items[i] = items[i].split(',');
         for (var j in items[i]) {
